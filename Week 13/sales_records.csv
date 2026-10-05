@@ -1,0 +1,11 @@
+Order_ID,Category,Price,Units_Sold
+101,Electronics,299.99,12
+102,Clothing,45.00,25
+103,Perishable,15.50,50
+102,Clothing,45.00,25
+104,Home,75.00,8
+105,Electronics,,18
+106,Perishable,12.50,
+107,Clothing,35.00,30
+108,Home,80.00,5
+109,Perishable,20.00,45
