@@ -1,131 +1,114 @@
+import os
 import streamlit as st
 import numpy as np
 import pandas as pd
 
-st.title("Apex Logistics Management System")
+st.title("Diana Logistics")
 
-# Base class
 class Item:
-    def __init__(self, item_id, unit_price):
-        self.item_id = item_id
-        self.unit_price = float(unit_price)
+    def __init__(self, itemID, unitPrice):
+        self.itemID = itemID
+        self.unitPrice = float(unitPrice)
 
-    # Operator overloading untuk tambah harga dua barang
     def __add__(self, other):
-        return self.unit_price + other.unit_price
+        if isinstance(other, Item):
+            return self.unitPrice + other.unitPrice
+        return self.unitPrice + float(other)
 
     def __str__(self):
-        return f"Item ID: {self.item_id} | Unit Price: RM{self.unit_price:.2f}"
+        return f"Item ID: {self.itemID} | Unit Price: RM{self.unitPrice:.2f}"
 
-
-# Subclass yang inherit dari Item
-class PerishableItem(Item):
-    def __init__(self, item_id, unit_price, expiry_date):
-        super().__init__(item_id, unit_price)
-        self.expiry_date = expiry_date
+class perishableItem(Item):
+    def __init__(self, itemID, unitPrice, expiryDate):
+        super().__init__(itemID, unitPrice)
+        self.expiryDate = expiryDate
 
     def __str__(self):
-        return f"{super().__str__()} | Expiry Date: {self.expiry_date}"
+        return f"{super().__str__()}, Expiry: {self.expiryDate}"
 
+st.subheader("Item Registration")
+price1 = st.text_input("Price Item 1:", "30.00")
+price2 = st.text_input("Price Item 2:", "15.00")
 
-# --- Bahagian 1: Pendaftaran Item & OOP ---
-st.subheader("1. Pendaftaran Produk")
-
-col1, col2 = st.columns(2)
-with col1:
-    id1 = st.text_input("ID Item 1:", "ITM01")
-    price1 = st.text_input("Harga Item 1 (RM):", "40.00")
-
-with col2:
-    id2 = st.text_input("ID Item 2 (Perishable):", "PRSH02")
-    price2 = st.text_input("Harga Item 2 (RM):", "15.50")
-    expiry = st.text_input("Tarikh Luput:", "2026-12-31")
-
-if st.button("Daftar Item"):
+if st.button("Register"):
     try:
-        # Cuba convert harga kepada float
-        p1 = float(price1)
-        p2 = float(price2)
-
-        item1 = Item(id1, p1)
-        item2 = PerishableItem(id2, p2, expiry)
-
-        # Guna operator __add__
+        item1 = Item("A001", price1)
+        item2 = perishableItem("B002", price2, "2026-04-17")
         total = item1 + item2
 
-        st.success("Item berjaya didaftarkan.")
         st.write(str(item1))
         st.write(str(item2))
-        st.write(f"Jumlah Harga (Operator Overloading): RM{total:.2f}")
+        st.success(f"Total Price: RM{total:.2f}")
 
     except ValueError:
-        st.error("Error: Sila masukkan nombor sahaja untuk harga.")
+        st.error("Sila masukkan nombor sahaja untuk harga")
 
-
-# --- Bahagian 2: Stok Gudang (NumPy Matrix 5x5) ---
-st.subheader("2. Paras Stok Gudang (NumPy 5x5)")
-
-# Matriks stok 5 seksyen x 5 rak
+st.subheader("Warehouse Stock")
 stock = np.array([
-    [50, 20, 60, 30, 15],  # Seksyen A
-    [10, 5, 8, 12, 4],     # Seksyen B
-    [80, 90, 75, 85, 70],  # Seksyen C
-    [25, 30, 40, 35, 20],  # Seksyen D
-    [5, 8, 12, 6, 9]       # Seksyen E
+    [43, 68, 32, 57, 9],
+    [65, 66, 22, 90, 12],
+    [88, 10, 21, 40, 30],
+    [31, 45, 29, 67, 83],
+    [49, 11, 8, 78, 63]
 ])
 
-st.write("Matriks Stok Gudang:")
 st.write(stock)
+totalStock = np.sum(stock)
+st.write(f"Total Stock: {totalStock}")
 
-total_stock = np.sum(stock)
-section_totals = np.sum(stock, axis=1)
+sectionSum = np.sum(stock, axis=1)
+for i in range(5):
+    if sectionSum[i] < 200:
+        st.warning(f"Section {chr(65 + i)} has low stock ({sectionSum[i]} units).")
 
-st.write(f"Jumlah Keseluruhan Stok: {total_stock} unit")
-
-# Check seksyen stok rendah (< 50 unit)
-for i in range(len(section_totals)):
-    if section_totals[i] < 50:
-        seksyen = chr(65 + i)
-        st.warning(f"Amaran: Seksyen {seksyen} mempunyai stok rendah ({section_totals[i]} unit).")
-
-# Kira agihan stok guna try-except
-trucks = st.number_input("Bilangan lori untuk agihan stok:", min_value=0, value=0)
-if st.button("Kira Stok Setiap Lori"):
+trucks = st.number_input("Number of trucks to divide stock:", min_value=0, value=0)
+if st.button("Calculate Stock Per Truck"):
     try:
-        per_truck = total_stock / trucks
-        st.success(f"Stok untuk setiap lori: {per_truck:.2f} unit")
+        result = int(totalStock) / int(trucks)
+        st.success(f"Stock per truck: {result:.2f} units")
     except ZeroDivisionError:
         st.error("Error: Bilangan lori tidak boleh 0.")
 
+st.subheader("Sales Data Pre-processing")
 
-# --- Bahagian 3: Analisis Jualan (Pandas) ---
-st.subheader("3. Analisis dan Pembersihan Data Jualan (Pandas)")
+uploadedFile = st.file_uploader("Upload sales CSV file:", type=["csv"])
 
-# Dataset jualan
-raw_sales = {
-    'Order_ID': [101, 102, 103, 102, 104, 105, 106, 107],
-    'Category': ['Electronics', 'Clothing', 'Perishable', 'Clothing', 'Home', 'Electronics', 'Perishable', 'Clothing'],
-    'Price': [299.99, 45.00, 15.50, 45.00, np.nan, 89.99, 12.50, 35.00],
-    'Units_Sold': [12, 25, 50, 25, 8, np.nan, 4, 30]
-}
+df = None
+if uploadedFile is not None:
+    try:
+        df = pd.read_csv(uploadedFile)
+    except Exception as err:
+        st.error(f"Error membaca fail CSV: {err}")
+else:
+    try:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        csv_path = os.path.join(script_dir, "sales_records.csv")
+        if os.path.exists(csv_path):
+            with open(csv_path, "r", encoding="utf-8") as f:
+                df = pd.read_csv(f)
+            st.info("Using default file: sales_records.csv")
+        else:
+            raw_data = {
+                'Order_ID': [101, 102, 103, 102, 104, 105, 106, 107],
+                'Category': ['Electronics', 'Clothing', 'Perishable', 'Clothing', 'Home', 'Electronics', 'Perishable', 'Clothing'],
+                'Price': [299.99, 45.00, 15.50, 45.00, np.nan, 89.99, 12.50, 35.00],
+                'Units_Sold': [12, 25, 50, 25, 8, np.nan, 4, 30]
+            }
+            df = pd.DataFrame(raw_data)
+    except Exception as err:
+        st.error(f"Error memuatkan data: {err}")
 
-df = pd.DataFrame(raw_sales)
+if df is not None:
+    st.write("Raw Data from CSV", df)
 
-st.write("Data Asal:")
-st.dataframe(df)
+    df_clean = df.drop_duplicates(keep="first").copy()
+    if "Price" in df_clean.columns:
+        df_clean["Price"] = df_clean["Price"].fillna(df_clean["Price"].mean())
+    if "Units_Sold" in df_clean.columns:
+        df_clean["Units_Sold"] = df_clean["Units_Sold"].fillna(df_clean["Units_Sold"].mean())
 
-# 1. Buang duplicate
-df_clean = df.drop_duplicates(keep='first').copy()
+    st.write("Cleaned Data", df_clean)
 
-# 2. Ganti NaN dengan nilai purata (mean)
-df_clean['Price'] = df_clean['Price'].fillna(df_clean['Price'].mean())
-df_clean['Units_Sold'] = df_clean['Units_Sold'].fillna(df_clean['Units_Sold'].mean())
-
-st.write("Data Selepas Dibersihkan (Tiada Duplicate & NaN diganti Mean):")
-st.dataframe(df_clean)
-
-# 3. Filter jualan tinggi (Units_Sold >= 20)
-high_sales = df_clean[df_clean['Units_Sold'] >= 20]
-
-st.write("Item Jualan Tinggi (Units Sold >= 20):")
-st.dataframe(high_sales)
+    if "Units_Sold" in df_clean.columns:
+        high_sales = df_clean[df_clean["Units_Sold"] >= 20]
+        st.write("High Sales Volume (Units Sold >= 20)", high_sales)
